@@ -8,8 +8,7 @@ HEADERS = {
 }
 
 SOURCES = [
-    'http://vitftopuptop.xubi.org:25461/get.php?username=Pluto&password=m3WxRfR&type=m3u_plus&output=ts',
-    'http://bl4ck.loseyourip.com/get.php?username=PaperinoPaperino1&password=xKGU0Bk9kP&type=m3u_plus&output=mpegts'
+    'http://vitftopuptop.xubi.org:25461/get.php?username=Pluto&password=m3WxRfR&type=m3u_plus&output=ts'
 ]
 
 def main():
