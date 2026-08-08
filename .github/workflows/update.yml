@@ -2,33 +2,34 @@ name: Update IPTV Playlist
 
 on:
   schedule:
-    # Esegue lo script ogni ora (alle 0 dell'ora)
-    - cron: '0 * * * *'
-  workflow_dispatch: # Permette di lanciarlo manualmente da GitHub
+    # Esegue lo script ogni 15 minuti per mantenere i link freschi e stabili su TV/Chiavette
+    - cron: '*/15 * * * *'
+  workflow_dispatch: # Permette di lanciarlo manualmente cliccando su "Run workflow"
 
 jobs:
   update:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
 
-    - name: Install dependencies
-      run: pip install requests
+      - name: Install dependencies
+        run: pip install requests
 
-    - name: Run Update Script
-      run: python update_playlist.py
+      - name: Run Update Script
+        # Assicurati che il file si chiami esattamente update_playlist.py
+        run: python update_playlist.py
 
-    - name: Commit and Push if changed
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add playlist.m3u
-        git diff --quiet && git diff --staged --quiet || git commit -m "Auto-update playlist"
-        git push
+      - name: Commit and Push if changed
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add playlist.m3u
+          # Verifica se ci sono cambiamenti prima di fare il commit per evitare errori
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update playlist [Fresh Links]" && git push)
