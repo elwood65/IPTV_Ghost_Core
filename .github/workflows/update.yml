@@ -2,34 +2,76 @@ name: Update IPTV Playlist
 
 on:
   schedule:
-    # Esegue lo script ogni 15 minuti per mantenere i link freschi e stabili su TV/Chiavette
-    - cron: '*/15 * * * *'
-  workflow_dispatch: # Permette di lanciarlo manualmente cliccando su "Run workflow"
+    - cron: "*/15 * * * *"
+
+  workflow_dispatch:
 
 jobs:
   update:
     runs-on: ubuntu-latest
 
+    timeout-minutes: 20
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install requests
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
 
       - name: Run Update Script
-        # Assicurati che il file si chiami esattamente update_playlist.py
-        run: python update_playlist.py
+        run: |
+          python update_playlist.py
+
+      - name: Check playlist
+        run: |
+          if [ ! -f playlist.m3u ]; then
+            echo "ERROR: playlist.m3u non trovata"
+            exit 1
+          fi
+
+          SIZE=$(stat -c%s playlist.m3u)
+
+          echo "Playlist size: $SIZE bytes"
+
+          if [ "$SIZE" -lt 1000000 ]; then
+            echo "ERROR: playlist troppo piccola"
+            exit 1
+          fi
+
+          if ! head -n 1 playlist.m3u | grep -q "#EXTM3U"; then
+            echo "ERROR: header M3U non valido"
+            exit 1
+          fi
+
+          EXTINF=$(grep -c "^#EXTINF:" playlist.m3u || true)
+
+          echo "EXTINF entries: $EXTINF"
+
+          if [ "$EXTINF" -lt 1000 ]; then
+            echo "ERROR: numero di entry troppo basso"
+            exit 1
+          fi
+
+          echo "Playlist validation OK"
 
       - name: Commit and Push if changed
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+
           git add playlist.m3u
-          # Verifica se ci sono cambiamenti prima di fare il commit per evitare errori
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update playlist [Fresh Links]" && git push)
+
+          if git diff --cached --quiet; then
+            echo "Nessuna modifica alla playlist."
+          else
+            git commit -m "Auto-update playlist [Fresh Links]"
+            git push
+          fi
