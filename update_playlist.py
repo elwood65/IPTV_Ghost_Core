@@ -13,7 +13,7 @@ HEADERS = {
 SOURCES = [
     "http://vitftopuptop.xubi.org:25461/"
     "get.php?username=Pluto&password=m3WxRfR"
-    "&type=m3u_plus&output=ts"
+    "&type=m3u_plus&output=m3u8"
 ]
 
 OUTPUT_FILE = "playlist.m3u"
