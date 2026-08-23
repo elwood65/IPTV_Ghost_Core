@@ -7,13 +7,9 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
 }
 
-# --- SISTEMA MULTI-SORGENTE ---
-# Aggiungi qui gli altri link tra virgolette, separati da una virgola.
-# Il sistema proverà il primo, se fallisce passa al secondo, ecc.
 SOURCES = [
     "http://vitftopuptop.xubi.org:25461/get.php?username=Pluto&password=m3WxRfR&type=m3u_plus&output=m3u",
-    "INSERISCI_LINK_BACKUP_1_QUI", 
-    "INSERISCI_LINK_BACKUP_2_QUI",
+    # Aggiungi backup qui
 ]
 
 OUTPUT_FILE = "playlist.m3u"
@@ -34,9 +30,26 @@ def download_source(source):
                 if not chunks: return None
                 return b"".join(chunks)
         except Exception as e:
-            print(f"[ERR] Problema con sorgente {source}: {e}")
+            print(f"[ERR] Sorgente {source}: {e}")
             if attempt < MAX_RETRIES - 1: time.sleep(5)
     return None
+
+def ghost_sanitize(text):
+    """ Funzione di mascheramento e pulizia: rende la lista professionale e pulita """
+    lines = text.splitlines()
+    sanitized = ["#EXTM3U"] # Manteniamo solo l'header essenziale
+    
+    for line in lines:
+        line = line.strip()
+        if not line: continue
+        
+        # Rimuoviamo righe di commento inutili che rivelano troppe info sul server
+        if line.startswith("#") and not line.startswith("#EXTINF"):
+            continue
+            
+        sanitized.append(line)
+    
+    return "\n".join(sanitized)
 
 def validate_playlist(content):
     try:
@@ -44,7 +57,10 @@ def validate_playlist(content):
         if not text.strip().startswith("#EXTM3U"): return False, 0, ""
         valid_entries = sum(1 for line in text.splitlines() if line.strip().startswith("http"))
         if valid_entries < MIN_ENTRIES: return False, valid_entries, ""
-        return True, valid_entries, text
+        
+        # APPLICHIAMO IL MASCHERAMENTO GHOST
+        ghost_text = ghost_sanitize(text)
+        return True, valid_entries, ghost_text
     except: return False, 0, ""
 
 def write_atomic(text):
@@ -59,26 +75,22 @@ def write_atomic(text):
 
 def main():
     print("=" * 60)
-    print(" IPTV GHOST CORE - ENGINE v2.1 (Multi-Source)")
+    print(" IPTV GHOST CORE - ENGINE v2.2 (Ghost Mode)")
     print("=" * 60)
     
     for idx, source in enumerate(SOURCES):
-        if "INSERISCI_LINK" in source: continue # Salta i placeholder vuoti
-        
         print(f"[TRIAL] Prova Sorgente #{idx+1}...")
         content = download_source(source)
-        
         if content:
             valid, entries, text = validate_playlist(content)
             if valid:
                 if write_atomic(text):
-                    print(f"[OK] SORGENTE #{idx+1} ATTIVA. Entry: {entries}")
+                    print(f"[OK] SORGENTE #{idx+1} ATTIVA & MASKED. Entry: {entries}")
                     return 0
-        
-        print(f"[FAIL] Sorgente #{idx+1} non disponibile o non valida.")
+        print(f"[FAIL] Sorgente #{idx+1} offline/non valida.")
 
-    print("[CRITICAL] Tutte le sorgenti sono offline.")
-    return 0 # Ritorna 0 per non mandare mail di errore di GitHub
+    print("[CRITICAL] Nessuna sorgente disponibile.")
+    return 0
 
 if __name__ == "__main__":
     exit(main())
